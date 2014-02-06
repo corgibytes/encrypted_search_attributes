@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.summary       = %q{Auto populates encrypted fields that are designed for searching}
   spec.description   = %q{Encrypting a field makes it very difficult to perform a case insensitive search for the columns data. This gem normalizes the text before encrypted it and storing it in a search column. The current normalization method is to convert the text to all lowercase.}
   spec.homepage      = ""
-  spec.license       = "MIT"
+  spec.license       = "Apache License v2.0"
 
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
