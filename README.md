@@ -40,10 +40,6 @@ Or install it yourself as:
 
     $ gem install encrypted_search_attributes
 
-## Usage
-
-TODO: Write usage instructions here
-
 ## Contributing
 
 1. Fork it ( http://github.com/corgibytes/encrypted_search_attributes/fork )
