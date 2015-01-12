@@ -4,9 +4,10 @@ module ActiveRecord
       def attr_encrypted_search(*params)
         define_attribute_methods rescue nil
 
-        options   = params.last.is_a?(Hash) ? params.pop.dup : {}
-        compress  = options.delete(:compress) || false
-        type      = options.delete(:type) || :string
+        options = params.last.is_a?(Hash) ? params.pop.dup : {}
+        compress = options.delete(:compress) || false
+        type = options.delete(:type) || :string
+        normalize = options.delete(:normalize)
 
         raise "Invalid type: #{type.inspect}. Valid types: #{SymmetricEncryption::COERCION_TYPES.inspect}" unless SymmetricEncryption::COERCION_TYPES.include?(type)
 
@@ -20,14 +21,34 @@ module ActiveRecord
         end
 
         params.each do |attribute|
-          mod.module_eval(<<-ENCRYPTEDSEARCH, __FILE__, __LINE__ + 1)
-            def #{attribute}=(value)
+          mod.module_eval do
+            define_method("#{attribute}=") do |value|
               if value
-                self.encrypted_search_#{attribute} = ::SymmetricEncryption.encrypt(value.downcase,false,#{compress},:#{type})
+                send(
+                  "encrypted_search_#{attribute}=",
+                  ::SymmetricEncryption.encrypt(
+                    send("normalize_#{attribute}", value),
+                    false,
+                    compress,
+                    type
+                  )
+                )
               end
               super(value)
             end
-          ENCRYPTEDSEARCH
+
+            define_method("normalize_#{attribute}") do |value|
+              if normalize
+                if normalize.respond_to?(:call)
+                  normalize.call(value)
+                else
+                  send(normalize, value)
+                end
+              else
+                value.downcase
+              end
+            end
+          end
         end
 
       end

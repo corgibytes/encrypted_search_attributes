@@ -7,15 +7,22 @@ ActiveRecord::Base.configurations = YAML::load(ERB.new(IO.read(db_config_file)).
 ActiveRecord::Base.establish_connection('test')
 
 ActiveRecord::Schema.define(version: 0) do
-  create_table :widgets, force: true do |t|
+  create_table :widget_with_custom_methods, force: true do |t|
     t.string :encrypted_name
     t.string :encrypted_search_name
   end
 end
 
-class Widget < ActiveRecord::Base
+class WidgetWithCustomMethod < ActiveRecord::Base
   attr_encrypted        :name
-  attr_encrypted_search :name
+  attr_encrypted_search :name,
+                        normalize: :downcase_no_spaces
+
+  private
+
+  def downcase_no_spaces(value)
+    value.downcase.gsub(' ', '')
+  end
 end
 
 SymmetricEncryption.load!(encryption_config_file, 'test')
@@ -23,13 +30,13 @@ SymmetricEncryption.load!(encryption_config_file, 'test')
 # Initialize the database connection
 config = YAML.load(ERB.new(File.new(db_config_file).read).result)['test']
 
-Widget.establish_connection(config)
+WidgetWithCustomMethod.establish_connection(config)
 
-describe 'attr_encrypted_search' do
+describe 'custom method attr_encrypted_search' do
   it 'sets encrypted search field on initialization' do
-    widget = Widget.new(name: 'Test Value')
+    widget = WidgetWithCustomMethod.new(name: 'Test Value')
 
-    search_value = ::SymmetricEncryption.encrypt('test value')
+    search_value = ::SymmetricEncryption.encrypt('testvalue')
     expect(widget.encrypted_search_name).to eq(search_value)
 
     widget.save!
@@ -40,9 +47,9 @@ describe 'attr_encrypted_search' do
   end
 
   it 'sets the encrypted search field on creation' do
-    widget = Widget.create!(name: 'Another Test')
+    widget = WidgetWithCustomMethod.create!(name: 'Another Test')
 
-    search_value = ::SymmetricEncryption.encrypt('another test')
+    search_value = ::SymmetricEncryption.encrypt('anothertest')
     expect(widget.encrypted_search_name).to eq(search_value)
 
     widget.reload
@@ -50,7 +57,7 @@ describe 'attr_encrypted_search' do
   end
 
   it 'correctly handles nil values' do
-    widget = Widget.create!(name: nil)
+    widget = WidgetWithCustomMethod.create!(name: nil)
 
     expect(widget.encrypted_search_name).to eq(nil)
 
@@ -59,11 +66,11 @@ describe 'attr_encrypted_search' do
   end
 
   it 'sets encrypted search field on assignment' do
-    widget = Widget.create!
+    widget = WidgetWithCustomMethod.create!
 
     widget.name = 'Something Else'
 
-    search_value = ::SymmetricEncryption.encrypt('something else')
+    search_value = ::SymmetricEncryption.encrypt('somethingelse')
     expect(widget.encrypted_search_name).to eq(search_value)
 
     widget.save!
@@ -74,7 +81,7 @@ describe 'attr_encrypted_search' do
   end
 
   it 'preserves attr_encrypted functionality' do
-    widget = Widget.create!(name: 'Anything')
+    widget = WidgetWithCustomMethod.create!(name: 'Anything')
     expect(widget.name).to eq('Anything')
     expect(widget.encrypted_name).to eq(::SymmetricEncryption.encrypt('Anything'))
 
